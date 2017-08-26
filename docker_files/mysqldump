@@ -145,9 +145,18 @@ EOF
 
 # shellcheck disable=SC2015
 [[ "${__helptext+x}" ]] || read -r -d '' __helptext <<-'EOF' || true # exits non-zero when EOF encountered
- This is Bash3 Boilerplate's help text. Feel free to add any description of your
- program or elaborate more on command-line arguments. This section is not
- parsed and will be added as-is to the help.
+  This script will incorporate environment variables and Rancher Secrets
+  into a `mysqldump` command. It will use the following variables, with
+  defaults specified where appropriate:
+
+  - DB_USER - username to connect as
+  - SECRET_FILE - where in `/run/secrets` to find the database password [db_pass]
+  - DB_HOST - host to connect to
+  - OUTPUT_DIR - where to write the dump output [/dump]
+  - OUTPUT_FILENAME - what to save the dump as [dump.YYYYMMDD.HMMM.sql]
+
+  If `--user` or `--host` are provided in the command line, they will be ignored
+  if also set as environment variables.
 EOF
 
 # Translate usage string -> getopts arguments, and set $arg_<flag> defaults
@@ -372,6 +381,8 @@ fi
 : ${DB_USER:=unset}
 : ${DB_HOST:=unset}
 : ${DB_PASS:=unset}
+: ${OUTPUT_DIR:=/dump}
+: ${OUTPUT_FILENAME:=dump.$(date '+%Y%M%d.%H%m').sql}
 
 # Check and load the secret
 if [[ ${DB_PASS} = "unset" ]]; then
@@ -423,9 +434,15 @@ else
   info "Using hostname from command."
 fi
 
+if [[ ! -d ${OUTPUT_DIR} && ! ${arg_z} -eq 1 ]]; then
+  error "Please mount persistent storage at ${OUTPUT_DIR}"
+  exit 1
+fi
+
 # Execute command
 if [[ ${arg_z} -eq 1 ]]; then
   info Writing out config to ~/.my.cnf [dry-run]
+  info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} [dry-run]
   info Running "/usr/bin/mysqldump $*" [dry-run]
 else
   # Write out config file
@@ -440,6 +457,7 @@ EOF
   if [[ ${__cli_has_host} -eq 0 ]]; then
     echo "host=${DB_HOST}" >> ~/.my.cnf
   fi
+  info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} 
 
-  /usr/bin/mysqldump "$@"
+  /usr/bin/mysqldump "$@" > ${OUTPUT_DIR}/${OUTPUT_FILENAME}
 fi
