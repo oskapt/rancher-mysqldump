@@ -431,9 +431,15 @@ else
   # Write out config file
   cat << EOF > ~/.my.cnf
 [mysqldump]
-user=${DB_USER}
 password=${DB_PASS}
 EOF
+  if [[ ${__cli_has_user} -eq 0 ]]; then
+    echo "user=${DB_USER}" >> ~/.my.cnf
+  fi
+
+  if [[ ${__cli_has_host} -eq 0 ]]; then
+    echo "host=${DB_HOST}" >> ~/.my.cnf
+  fi
 
   /usr/bin/mysqldump "$@"
 fi
