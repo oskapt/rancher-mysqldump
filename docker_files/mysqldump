@@ -140,6 +140,7 @@ function help () {
   -d --debug       Enables debug mode
   -h --help        This page
   -n --no-color    Disable color output
+  -z --dry-run     Print what would happen but don't do anything
 EOF
 
 # shellcheck disable=SC2015
@@ -393,8 +394,6 @@ else
   __cli_has_user=0
 fi
 
-echo ${__cli_has_user}
-
 if [[ ! ${DB_USER} = "unset" && ${__cli_has_user} -eq 1 ]]; then
     warning "DB_USER and --user provided - ignoring DB_USER"
 elif [[ ${DB_USER} = "unset" && ${__cli_has_user} -eq 0 ]]; then
@@ -424,13 +423,17 @@ else
   info "Using hostname from command."
 fi
 
-# Write out config file
-cat << EOF > ~/.my.cnf
+# Execute command
+if [[ ${arg_z} -eq 1 ]]; then
+  info Writing out config to ~/.my.cnf [dry-run]
+  info Running "/usr/bin/mysqldump $*" [dry-run]
+else
+  # Write out config file
+  cat << EOF > ~/.my.cnf
 [mysqldump]
 user=${DB_USER}
 password=${DB_PASS}
 EOF
 
-# Execute command
-/usr/bin/mysqldump "$@"
-
+  /usr/bin/mysqldump "$@"
+fi
