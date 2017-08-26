@@ -154,9 +154,16 @@ EOF
   - DB_HOST - host to connect to
   - OUTPUT_DIR - where to write the dump output [/dump]
   - OUTPUT_FILENAME - what to save the dump as [dump.YYYYMMDD.HMMM.sql]
+  - FILE_PER_DB - write out one file per database [0]
+  - DATABASES - space-separated list of databases to back up 
+  - LOG_LEVEL - output level [info]
 
   If `--user` or `--host` are provided in the command line, they will be ignored
   if also set as environment variables.
+
+  If you set `FILE_PER_DB` to `1`, you need to provide `DATABASES`, and in this case you 
+  should _not_ specify any databases to back up on the command line. The databases will
+  be named in the form of `{name}.sql` in the dump directory.
 EOF
 
 # Translate usage string -> getopts arguments, and set $arg_<flag> defaults
@@ -457,7 +464,14 @@ EOF
   if [[ ${__cli_has_host} -eq 0 ]]; then
     echo "host=${DB_HOST}" >> ~/.my.cnf
   fi
-  info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} 
 
-  /usr/bin/mysqldump "$@" > ${OUTPUT_DIR}/${OUTPUT_FILENAME}
+  if [[ ${FILE_PER_DB:-} && ${DATABASES:-} ]]; then
+    for db in ${DATABASES}; do
+      info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql
+      /usr/bin/mysqldump "$@" ${db} > ${OUTPUT_DIR}/${db}.sql
+    done
+  else
+    info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} 
+    /usr/bin/mysqldump "$@" > ${OUTPUT_DIR}/${OUTPUT_FILENAME}
+  fi
 fi
