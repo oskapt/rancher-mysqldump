@@ -491,7 +491,7 @@ else
   if [[ ${FILE_PER_DB:-} && ${DATABASES:-} ]]; then
     for db in ${DATABASES}; do
       if [[ $(( $(date '+%s') - $( stat -c '%Y' ${OUTPUT_DIR}/${db}.sql ) )) -le ${SKIP_TIME} ]]; then
-        info Backup is less than ${SKIP_TIME} seconds. Skipping.
+        info Backup file for ${db} is less than ${SKIP_TIME} seconds. Skipping.
       elif [[ ${arg_z} -eq 1 ]]; then
         info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql [dry-run]
       else
