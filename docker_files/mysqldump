@@ -399,6 +399,7 @@ fi
 # Set umask corresponding to 0750 or 0640
 umask 027
 
+info "+++ Starting backup run."
 # Check and load the secret
 if [[ ${DB_PASS} = "unset" ]]; then
   if [[ -f /run/secrets/${SECRET_FILE} ]]; then
