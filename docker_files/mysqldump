@@ -441,16 +441,27 @@ else
   info "Using hostname from command."
 fi
 
+# Check that we have an output directory
 if [[ ! -d ${OUTPUT_DIR} && ! ${arg_z} -eq 1 ]]; then
   error "Please mount persistent storage at ${OUTPUT_DIR}"
   exit 1
 fi
 
-# Execute command
+# make our subdirectory
+if [[ ! -d ${OUTPUT_DIR}/${DB_HOST} ]]; then
+  if [[ ${arg_z} -eq 1 ]]; then
+    info Created output subdirectory for ${DB_HOST} [dry-run]
+  else
+    mkdir -p ${OUTPUT_DIR}/${DB_HOST}
+    info Created output subdirectory for ${DB_HOST}
+  fi
+fi
+
+OUTPUT_DIR=${OUTPUT_DIR}/${DB_HOST}
+
+# Write out config file
 if [[ ${arg_z} -eq 1 ]]; then
   info Writing out config to ~/.my.cnf [dry-run]
-  info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} [dry-run]
-  info Running "/usr/bin/mysqldump $*" [dry-run]
 else
   # Write out config file
   cat << EOF > ~/.my.cnf
@@ -464,12 +475,20 @@ EOF
   if [[ ${__cli_has_host} -eq 0 ]]; then
     echo "host=${DB_HOST}" >> ~/.my.cnf
   fi
+fi
 
-  if [[ ${FILE_PER_DB:-} && ${DATABASES:-} ]]; then
-    for db in ${DATABASES}; do
+if [[ ${FILE_PER_DB:-} && ${DATABASES:-} ]]; then
+  for db in ${DATABASES}; do
+    if [[ ${arg_z} -eq 1 ]]; then
+      info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql [dry-run]
+    else
       info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql
       /usr/bin/mysqldump "$@" ${db} > ${OUTPUT_DIR}/${db}.sql
-    done
+    fi
+  done
+else
+  if [[ ${arg_z} -eq 1 ]]; then
+    info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} [dry-run]
   else
     info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} 
     /usr/bin/mysqldump "$@" > ${OUTPUT_DIR}/${OUTPUT_FILENAME}
