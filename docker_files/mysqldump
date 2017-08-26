@@ -391,6 +391,9 @@ fi
 : ${OUTPUT_DIR:=/dump}
 : ${OUTPUT_FILENAME:=dump.$(date '+%Y%M%d.%H%m').sql}
 
+# Set umask corresponding to 0750 or 0640
+umask 027
+
 # Check and load the secret
 if [[ ${DB_PASS} = "unset" ]]; then
   if [[ -f /run/secrets/${SECRET_FILE} ]]; then
@@ -453,7 +456,6 @@ if [[ ! -d ${OUTPUT_DIR}/${DB_HOST} ]]; then
     info Created output subdirectory for ${DB_HOST} [dry-run]
   else
     mkdir -p ${OUTPUT_DIR}/${DB_HOST}
-    chmod 750 ${OUTPUT_DIR}/${DB_HOST}
     info Created output subdirectory for ${DB_HOST}
   fi
 fi
@@ -485,7 +487,6 @@ if [[ ${FILE_PER_DB:-} && ${DATABASES:-} ]]; then
     else
       info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql
       /usr/bin/mysqldump "$@" ${db} > ${OUTPUT_DIR}/${db}.sql
-      chmod 640 ${OUTPUT_DIR}/${db}.sql
     fi
   done
 else
@@ -494,6 +495,5 @@ else
   else
     info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} 
     /usr/bin/mysqldump "$@" > ${OUTPUT_DIR}/${OUTPUT_FILENAME}
-    chmod 640 ${OUTPUT_DIR}/${OUTPUT_FILENAME}
   fi
 fi
