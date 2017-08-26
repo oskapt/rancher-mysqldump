@@ -157,6 +157,7 @@ EOF
   - FILE_PER_DB - write out one file per database [0]
   - DATABASES - space-separated list of databases to back up 
   - LOG_LEVEL - output level [info]
+  - SKIP_TIME - time in seconds to skip per-file backups that already exist [86400]
 
   If `--user` or `--host` are provided in the command line, they will be ignored
   if also set as environment variables.
@@ -164,6 +165,9 @@ EOF
   If you set `FILE_PER_DB` to `1`, you need to provide `DATABASES`, and in this case you 
   should _not_ specify any databases to back up on the command line. The databases will
   be named in the form of `{name}.sql` in the dump directory.
+
+  If you wish to skip a database dump run entirely, you can touch `.skip` in the output
+  directory, and the run will skip.
 EOF
 
 # Translate usage string -> getopts arguments, and set $arg_<flag> defaults
@@ -390,6 +394,7 @@ fi
 : ${DB_PASS:=unset}
 : ${OUTPUT_DIR:=/dump}
 : ${OUTPUT_FILENAME:=dump.$(date '+%Y%M%d.%H%m').sql}
+: ${SKIP_TIME:=86400}
 
 # Set umask corresponding to 0750 or 0640
 umask 027
@@ -480,20 +485,26 @@ EOF
   fi
 fi
 
-if [[ ${FILE_PER_DB:-} && ${DATABASES:-} ]]; then
-  for db in ${DATABASES}; do
-    if [[ ${arg_z} -eq 1 ]]; then
-      info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql [dry-run]
-    else
-      info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql
-      /usr/bin/mysqldump "$@" ${db} > ${OUTPUT_DIR}/${db}.sql
-    fi
-  done
+if [[ -f ${OUTPUT_DIR}/.skip ]]; then
+  info Found skipfile. Skipping this run.
 else
-  if [[ ${arg_z} -eq 1 ]]; then
-    info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} [dry-run]
+  if [[ ${FILE_PER_DB:-} && ${DATABASES:-} ]]; then
+    for db in ${DATABASES}; do
+      if [[ $(( $(date '+%s') - $( stat -c '%Y' ${OUTPUT_DIR}/${db}.sql ) )) -le ${SKIP_TIME} ]]; then
+        info Backup is less than ${SKIP_TIME} seconds. Skipping.
+      elif [[ ${arg_z} -eq 1 ]]; then
+        info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql [dry-run]
+      else
+        info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql
+        /usr/bin/mysqldump "$@" ${db} > ${OUTPUT_DIR}/${db}.sql
+      fi
+    done
   else
-    info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} 
-    /usr/bin/mysqldump "$@" > ${OUTPUT_DIR}/${OUTPUT_FILENAME}
+    if [[ ${arg_z} -eq 1 ]]; then
+      info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} [dry-run]
+    else
+      info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} 
+      /usr/bin/mysqldump "$@" > ${OUTPUT_DIR}/${OUTPUT_FILENAME}
+    fi
   fi
 fi
