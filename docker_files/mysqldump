@@ -157,7 +157,7 @@ EOF
   - FILE_PER_DB - write out one file per database [0]
   - DATABASES - space-separated list of databases to back up 
   - LOG_LEVEL - output level [info]
-  - SKIP_TIME - time in seconds to skip per-file backups that already exist [86400]
+  - SKIP_TIME - time in seconds to skip per-file backups that already exist [82800]
 
   If `--user` or `--host` are provided in the command line, they will be ignored
   if also set as environment variables.
@@ -394,7 +394,7 @@ fi
 : ${DB_PASS:=unset}
 : ${OUTPUT_DIR:=/dump}
 : ${OUTPUT_FILENAME:=dump.$(date '+%Y%M%d.%H%m').sql}
-: ${SKIP_TIME:=86400}
+: ${SKIP_TIME:=82800}
 
 # Set umask corresponding to 0750 or 0640
 umask 027
