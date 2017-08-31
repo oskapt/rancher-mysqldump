@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # This file:
 #
-#  - Demos BASH3 Boilerplate (change this for your script)
+#  - This dumps mysql to a mounted volume for future archival
 #
 # Usage:
 #
