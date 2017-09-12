@@ -153,20 +153,20 @@ EOF
   - SECRET_FILE - where in `/run/secrets` to find the database password [db_pass]
   - DB_HOST - host to connect to
   - OUTPUT_DIR - where to write the dump output [/dump]
-  - OUTPUT_FILENAME - what to save the dump as [dump.YYYYMMDD.HMMM.sql]
+  - OUTPUT_FILENAME - what to save the dump as [dump.$(date '+%Y%M%d.%H%m').sql]
   - FILE_PER_DB - write out one file per database [0]
   - DATABASES - space-separated list of databases to back up 
   - LOG_LEVEL - output level [info]
   - SKIP_TIME - time in seconds to skip per-file backups that already exist [82800]
 
-  If `--user` or `--host` are provided in the command line, they will be ignored
+  If --user or --host are provided in the command line, they will be ignored
   if also set as environment variables.
 
-  If you set `FILE_PER_DB` to `1`, you need to provide `DATABASES`, and in this case you 
+  If you set FILE_PER_DB to 1, you need to provide DATABASES, and in this case you 
   should _not_ specify any databases to back up on the command line. The databases will
-  be named in the form of `{name}.sql` in the dump directory.
+  be named in the form of {name}.sql in the dump directory.
 
-  If you wish to skip a database dump run entirely, you can touch `.skip` in the output
+  If you wish to skip a database dump run entirely, you can touch .skip in the output
   directory, and the run will skip.
 EOF
 
