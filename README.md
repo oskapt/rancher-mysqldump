@@ -18,8 +18,8 @@ This is a container designed to safely dump MySQL, utilizing Rancher Secrets and
   -z --dry-run     Print what would happen but don't do anything
 
  This script will incorporate environment variables and Rancher Secrets
-  into a `mysqldump` command. It will use the following variables, with
-  defaults specified where appropriate:
+ into a mysqldump command. It will use the following variables, with
+ defaults specified where appropriate:
 
   - SECRET_FILE - where in /run/secrets to find the database password [db_pass]
   - DB_USER - username to connect as (required)

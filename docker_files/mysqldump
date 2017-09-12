@@ -146,7 +146,7 @@ EOF
 # shellcheck disable=SC2015
 [[ "${__helptext+x}" ]] || read -r -d '' __helptext <<-'EOF' || true # exits non-zero when EOF encountered
   This script will incorporate environment variables and Rancher Secrets
-  into a `mysqldump` command. It will use the following variables, with
+  into a mysqldump command. It will use the following variables, with
   defaults specified where appropriate:
 
   - DB_USER - username to connect as
