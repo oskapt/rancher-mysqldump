@@ -150,19 +150,18 @@ EOF
   defaults specified where appropriate:
 
   - DB_USER - username to connect as
-  - SECRET_FILE - where in `/run/secrets` to find the database password [db_pass]
+  - DB_PASS - password to use with DB_USER
   - DB_HOST - host to connect to
   - OUTPUT_DIR - where to write the dump output [/dump]
   - OUTPUT_FILENAME - what to save the dump as [dump.$(date '+%Y%M%d.%H%m').sql]
   - FILE_PER_DB - write out one file per database [0]
-  - DATABASES - space-separated list of databases to back up 
+  - DATABASES - space-separated list of databases to back up
   - LOG_LEVEL - output level [info]
-  - SKIP_TIME - time in seconds to skip per-file backups that already exist [82800]
 
   If --user or --host are provided in the command line, they will be ignored
   if also set as environment variables.
 
-  If you set FILE_PER_DB to 1, you need to provide DATABASES, and in this case you 
+  If you set FILE_PER_DB to 1, you need to provide DATABASES, and in this case you
   should _not_ specify any databases to back up on the command line. The databases will
   be named in the form of {name}.sql in the dump directory.
 
@@ -394,7 +393,6 @@ fi
 : ${DB_PASS:=unset}
 : ${OUTPUT_DIR:=/dump}
 : ${OUTPUT_FILENAME:=dump.$(date '+%Y%M%d.%H%m').sql}
-: ${SKIP_TIME:=82800}
 
 # Set umask corresponding to 0750 or 0640
 umask 027
@@ -402,13 +400,8 @@ umask 027
 info "+++ Starting backup run."
 # Check and load the secret
 if [[ ${DB_PASS} = "unset" ]]; then
-  if [[ -f /run/secrets/${SECRET_FILE} ]]; then
-    DB_PASS=$(cat /run/secrets/${SECRET_FILE})
-    info "Loaded DB_PASS from /run/secrets/${SECRET_FILE}"
-  else
-    error "Cannot proceed without SECRET_FILE or DB_PASS"
+    error "Cannot proceed without DB_PASS"
     exit 1
-  fi
 else
   info "Using password provided in DB_PASS"
 fi
@@ -456,56 +449,66 @@ if [[ ! -d ${OUTPUT_DIR} && ! ${arg_z} -eq 1 ]]; then
   exit 1
 fi
 
-# make our subdirectory
-if [[ ! -d ${OUTPUT_DIR}/${DB_HOST} ]]; then
-  if [[ ${arg_z} -eq 1 ]]; then
-    info Created output subdirectory for ${DB_HOST} [dry-run]
-  else
-    mkdir -p ${OUTPUT_DIR}/${DB_HOST}
-    info Created output subdirectory for ${DB_HOST}
-  fi
-fi
-
-OUTPUT_DIR=${OUTPUT_DIR}/${DB_HOST}
-
 # Write out config file
 if [[ ${arg_z} -eq 1 ]]; then
   info Writing out config to ~/.my.cnf [dry-run]
-else
-  # Write out config file
-  cat << EOF > ~/.my.cnf
-[mysqldump]
+fi
+
+# Write out config file
+cat << EOF > ~/.my.cnf
+[client]
 password=${DB_PASS}
 EOF
-  if [[ ${__cli_has_user} -eq 0 ]]; then
-    echo "user=${DB_USER}" >> ~/.my.cnf
-  fi
 
-  if [[ ${__cli_has_host} -eq 0 ]]; then
-    echo "host=${DB_HOST}" >> ~/.my.cnf
-  fi
+if [[ ${__cli_has_user} -eq 0 ]]; then
+  echo "user=${DB_USER}" >> ~/.my.cnf
+fi
+
+if [[ ${__cli_has_host} -eq 0 ]]; then
+  echo "host=${DB_HOST}" >> ~/.my.cnf
 fi
 
 if [[ -f ${OUTPUT_DIR}/.skip ]]; then
   info Found skipfile. Skipping this run.
 else
-  if [[ ${FILE_PER_DB:-} && ${DATABASES:-} ]]; then
+  if [[ ${FILE_PER_DB:-} ]]; then
+    # if we weren't given databases, get a list from the output of mysqlshow
+    if [[ ! ${DATABASES:-} ]]; then
+      DATABASES=$(mysqlshow | tail -n +4 | head -n -1 | awk '{ print $2 }' | grep -vE '(information|performance)_schema')
+    fi
+
     for db in ${DATABASES}; do
-      if [[ -f ${OUTPUT_DIR}/${db}.sql && $(( $(date '+%s') - $( stat -c '%Y' ${OUTPUT_DIR}/${db}.sql ) )) -le ${SKIP_TIME} ]]; then
-        info Backup file for ${db} is less than ${SKIP_TIME} seconds. Skipping.
-      elif [[ ${arg_z} -eq 1 ]]; then
-        info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql [dry-run]
+      outfile="${OUTPUT_DIR}/${db}.sql"
+      msg="Saving dump of ${db} to ${outfile}"
+
+      if [[ ${arg_z} -eq 1 ]]; then
+        info ${msg} [dry-run]
       else
-        info Saving dump of ${db} to ${OUTPUT_DIR}/${db}.sql
-        /usr/bin/mysqldump "$@" ${db} > ${OUTPUT_DIR}/${db}.sql
+        info ${msg}
+        /usr/bin/mysqldump "$@" ${db} > ${outfile}.part && mv ${outfile}.part ${outfile}
       fi
     done
   else
-    if [[ ${arg_z} -eq 1 ]]; then
-      info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} [dry-run]
+    outfile="${OUTPUT_DIR}/${OUTPUT_FILENAME}"
+
+    if [[ ! ${DATABASES:-} ]]; then
+      # no databases provided - dump everything
+      msg="Saving dump to ${outfile}"
+
+      if [[ ${arg_z} -eq 1 ]]; then
+        info ${msg} [dry-run]
+      else
+        info ${msg}
+        /usr/bin/mysqldump "$@" --all-databases > ${outfile}.part && mv ${outfile}.part ${outfile}
+      fi
     else
-      info Saving dump to ${OUTPUT_DIR}/${OUTPUT_FILENAME} 
-      /usr/bin/mysqldump "$@" > ${OUTPUT_DIR}/${OUTPUT_FILENAME}
+      msg="Saving dump for \"${DATABASES}\" to ${outfile}"
+      if [[ ${arg_z} -eq 1 ]]; then
+        info ${msg} [dry-run]
+      else
+        info ${msg}
+        /usr/bin/mysqldump "$@" -B ${DATABASES} > ${outfile}.part && mv ${outfile}.part ${outfile}
+      fi
     fi
   fi
 fi

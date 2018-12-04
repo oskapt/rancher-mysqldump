@@ -1,0 +1,51 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: mysqldump-prod
+  namespace: backup
+spec:
+  concurrencyPolicy: Allow
+  failedJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      completions: 1
+      parallelism: 1
+      template:
+        spec:
+          containers:
+          - env:
+            - name: DB_HOST
+              value: db.example.com
+            - name: DB_USER
+              value: backup_user
+            envFrom:
+            - secretRef:
+                name: prod-db-backup-password
+                optional: false
+            image: monachus/rancher-mysqldump:latest
+            imagePullPolicy: Always
+            name: mysqldump-prod
+            resources: {}
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities: {}
+              privileged: false
+              procMount: Default
+              readOnlyRootFilesystem: false
+              runAsNonRoot: false
+            volumeMounts:
+            - mountPath: /dump
+              name: prod-db-dump
+          dnsPolicy: ClusterFirst
+          restartPolicy: Never
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+          - name: prod-db-dump
+            persistentVolumeClaim:
+              claimName: prod-db-dump
+  schedule: 30 4 * * *
+  successfulJobsHistoryLimit: 10
+  suspend: false
