@@ -1,3 +1,5 @@
+**THIS BRANCH WAS DEPRECATED WHEN RANCHER 2.X WAS RELEASED. IT WILL ONLY WORK WITH RANCHER 1.6**
+
 This is a container designed to safely dump MySQL, utilizing Rancher Secrets and Rancher Container Cron.
 
 ## Prerequisites
@@ -44,7 +46,7 @@ This is a container designed to safely dump MySQL, utilizing Rancher Secrets and
 
 ## Additional Features
 
-- If you touch `.skip` in the output directory, backups will not run. 
+- If you touch `.skip` in the output directory, backups will not run.
 - You can pass flags directly to `mysqldump` by setting following script flags with `--` and then providing flags for `mysqldump` (e.g. `-z -- --no-data`)
 
 ## Walkthrough
@@ -60,7 +62,7 @@ For this scenario, we'll be creating a container that backs up an RDS instance
 5. Also under the _Command_ tab, set _Console_ to `None` and _Auto Restart_ to `Never`
 6. Under the _Volumes_ tab, mount some type of persistent storage at `/dump`. If you will be dumping multiple database servers and coming through later to ship them offsite, consider making this an NFS mount with Rancher NFS.
 7. Under the _Secrets_ tab, mount `prod_db_backup_password_v0` as `db_pass`.
-8. Under the _Labels_ tab, add a label of `cron.schedule` and set it to `@every 6h`. 
+8. Under the _Labels_ tab, add a label of `cron.schedule` and set it to `@every 6h`.
 9. Add any additional scheduling or other configuration, and click _Launch_.
 
 The container will start, execute the backup, and then stop. You can view log output in the container logs.
@@ -74,5 +76,3 @@ When the job runs, it takes some time for the dump to complete. Let's say that i
 #### Why run the container every X hours instead of every 24 hours?
 
 The container cron comes around at an interval from launch time. If you set it to `@every 24h` and you upgrade the container at 0915 in the morning, it'll start running backups every day at 0915. By setting it to scan every 6h (or 4h or 1h or 30m) you're assured that it will run within that interval of the backup expiring, giving you dumps that generally fall between midnight and 0600. You're welcome to change it to run at a specific time instead.
-
-
