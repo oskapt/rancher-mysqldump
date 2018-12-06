@@ -2,7 +2,7 @@ This is a container designed to safely dump MySQL to a K8s PersistentVolume, usi
 
 ## Prerequisites
 
-1. This expects that you have a working Kubernets installation. Rancher is not required, but it does make Kubernetes easier to use.
+1. This expects that you have a working Kubernetes installation. Rancher is not required, but it does make Kubernetes easier to use.
 2. Create a user account in MySQL with the ability to back up the databases. This user only needs `SELECT` and `LOCK TABLES` globally.
 
 ## Usage
