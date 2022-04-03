@@ -1,4 +1,4 @@
-FROM alpine:3.6
+FROM alpine:3
 
 WORKDIR /root
 RUN apk --no-cache -q add mysql-client bash
